@@ -9,6 +9,7 @@ import 'qr_login_page.dart';
 import 'comment_page.dart';
 import '../../core/network/api_client.dart';
 import '../../core/constants/app_constants.dart';
+import '../../core/utils/logger.dart';
 
 /// 主页面
 class HomePage extends StatefulWidget {
@@ -281,7 +282,7 @@ class _HomePageState extends State<HomePage> {
     // 1. 处理AV号格式：av2, AV2, 2
     if (input.toLowerCase().startsWith('av')) {
       final avId = input.substring(2);
-      print('avId: $avId');
+      Logger.d('解析AV号: $avId');
       return int.tryParse(avId);
     }
     
@@ -294,7 +295,7 @@ class _HomePageState extends State<HomePage> {
     // 3. 处理BV号格式：BV1xx411c7mD
     if (input.toUpperCase().startsWith('BV')) {
       final bvId = input;
-      print('bvId1: $bvId');
+      Logger.d('解析BV号: $bvId');
       return await _bvToAvByApi(bvId);
     }
     
@@ -341,15 +342,15 @@ class _HomePageState extends State<HomePage> {
         AppConstants.videoInfoUrl,
         queryParameters: {'bvid': bvId},
       );
-      print('response: $response');
+      Logger.d('视频信息API响应: ${response.statusCode}');
       if (response.data != null && response.data['code'] == 0) {
         final aid = response.data['data']['aid'] as int?;
-        print('BV号 $bvId 转换为 AV号: $aid');
+        Logger.d('BV号 $bvId 转换为 AV号: $aid');
         return aid;
       }
       return null;
     } catch (e) {
-      print('BV号转换失败: $e');
+      Logger.e('BV号转换失败: $e');
       return null;
     }
   }
@@ -374,7 +375,9 @@ class _HomePageState extends State<HomePage> {
     );
     
     if (confirmed == true && mounted) {
-      context.read<AuthProvider>().logout();
+      if (context.mounted) {
+        context.read<AuthProvider>().logout();
+      }
     }
   }
 } 

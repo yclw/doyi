@@ -1,1 +1,7 @@
 include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  exclude:
+    - test_network.dart
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
