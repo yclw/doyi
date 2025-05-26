@@ -1,0 +1,76 @@
+name: doyi
+description: "企业级B站二维码登录Flutter应用"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.8.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # UI组件
+  cupertino_icons: ^1.0.6
+  
+  # 网络请求
+  dio: ^5.8.0+1
+  
+  # 网络状态检测
+  connectivity_plus: ^6.1.4
+  
+  # 状态管理
+  provider: ^6.1.5
+  
+  # 本地存储
+  shared_preferences: ^2.5.3
+  
+  # JSON序列化
+  json_annotation: ^4.9.0
+  
+  # 二维码显示
+  qr_flutter: ^4.1.0
+  
+  # 函数式编程
+  dartz: ^0.10.1
+  
+  # 依赖注入
+  get_it: ^8.0.3
+  
+  # 工具类
+  equatable: ^2.0.7
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  build_runner: ^2.4.15
+  json_serializable: ^6.9.5
+  flutter_launcher_icons: ^0.14.1
+
+flutter:
+  uses-material-design: true
+  
+  # 资源文件
+  assets:
+    - assets/images/
+
+# 应用图标配置
+flutter_launcher_icons:
+  android: "launcher_icon"
+  ios: true
+  image_path: "assets/images/doyi.png"
+  min_sdk_android: 21
+  remove_alpha_ios: true
+  web:
+    generate: true
+    image_path: "assets/images/doyi.png"
+  windows:
+    generate: true
+    image_path: "assets/images/doyi.png"
+  macos:
+    generate: true
+    image_path: "assets/images/doyi.png"
+  linux:
+    generate: true
+    image_path: "assets/images/doyi.png"
