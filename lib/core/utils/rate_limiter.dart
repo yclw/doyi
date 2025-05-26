@@ -1,7 +1,7 @@
 /// 请求频率限制器
 class RateLimiter {
   static final Map<String, DateTime> _lastRequestTimes = {};
-  static const Duration _minInterval = Duration(milliseconds: 1000); // 最小请求间隔500ms
+  static const Duration _minInterval = Duration(milliseconds: 500); // 最小请求间隔500ms
   
   /// 检查是否可以发起请求
   static Future<void> checkAndWait(String endpoint) async {
