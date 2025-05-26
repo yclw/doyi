@@ -1,5 +1,5 @@
 name: doyi
-description: "企业级B站二维码登录Flutter应用"
+description: "B站二维码登录Flutter应用"
 publish_to: 'none'
 version: 1.0.0+1
 

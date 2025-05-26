@@ -1,0 +1,283 @@
+name: Build and Release
+
+on:
+  push:
+    branches: [ main, master ]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  # 代码质量检查
+  analyze:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+          
+      - name: Get dependencies
+        run: flutter pub get
+        
+      - name: Analyze code
+        run: flutter analyze
+        
+      - name: Run tests
+        run: flutter test
+
+  # Android构建
+  build-android:
+    needs: analyze
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+          
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+          
+      - name: Get dependencies
+        run: flutter pub get
+        
+      - name: Generate launcher icons
+        run: flutter pub run flutter_launcher_icons
+        
+      - name: Build APK
+        run: flutter build apk --release
+        
+      - name: Build App Bundle
+        run: flutter build appbundle --release
+        
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          
+      - name: Upload AAB artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-aab
+          path: build/app/outputs/bundle/release/app-release.aab
+
+  # iOS构建
+  build-ios:
+    needs: analyze
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+          
+      - name: Get dependencies
+        run: flutter pub get
+        
+      - name: Generate launcher icons
+        run: flutter pub run flutter_launcher_icons
+        
+      - name: Build iOS (no codesign)
+        run: flutter build ios --release --no-codesign
+        
+      - name: Create IPA
+        run: |
+          mkdir -p build/ios/iphoneos/Payload
+          cp -r build/ios/iphoneos/Runner.app build/ios/iphoneos/Payload/
+          cd build/ios/iphoneos
+          zip -r doyi.ipa Payload/
+          
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-ipa
+          path: build/ios/iphoneos/doyi.ipa
+
+  # macOS构建
+  build-macos:
+    needs: analyze
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+          
+      - name: Enable macOS desktop
+        run: flutter config --enable-macos-desktop
+        
+      - name: Get dependencies
+        run: flutter pub get
+        
+      - name: Generate launcher icons
+        run: flutter pub run flutter_launcher_icons
+        
+      - name: Build macOS
+        run: flutter build macos --release
+        
+      - name: Create DMG
+        run: |
+          brew install create-dmg
+          create-dmg \
+            --volname "Doyi" \
+            --window-pos 200 120 \
+            --window-size 600 300 \
+            --icon-size 100 \
+            --icon "doyi.app" 175 120 \
+            --hide-extension "doyi.app" \
+            --app-drop-link 425 120 \
+            "doyi.dmg" \
+            "build/macos/Build/Products/Release/"
+            
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-dmg
+          path: doyi.dmg
+
+  # Windows构建
+  build-windows:
+    needs: analyze
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+          
+      - name: Enable Windows desktop
+        run: flutter config --enable-windows-desktop
+        
+      - name: Get dependencies
+        run: flutter pub get
+        
+      - name: Generate launcher icons
+        run: flutter pub run flutter_launcher_icons
+        
+      - name: Build Windows
+        run: flutter build windows --release
+        
+      - name: Create Windows installer
+        run: |
+          Compress-Archive -Path "build\windows\x64\runner\Release\*" -DestinationPath "doyi-windows.zip"
+          
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-zip
+          path: doyi-windows.zip
+
+  # Linux构建
+  build-linux:
+    needs: analyze
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
+          
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+          
+      - name: Enable Linux desktop
+        run: flutter config --enable-linux-desktop
+        
+      - name: Get dependencies
+        run: flutter pub get
+        
+      - name: Generate launcher icons
+        run: flutter pub run flutter_launcher_icons
+        
+      - name: Build Linux
+        run: flutter build linux --release
+        
+      - name: Create Linux package
+        run: |
+          cd build/linux/x64/release/bundle
+          tar -czf ../../../../../doyi-linux.tar.gz *
+          
+      - name: Upload Linux artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-tar
+          path: doyi-linux.tar.gz
+
+  # Web构建
+  build-web:
+    needs: analyze
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+          
+      - name: Get dependencies
+        run: flutter pub get
+        
+      - name: Generate launcher icons
+        run: flutter pub run flutter_launcher_icons
+        
+      - name: Build Web
+        run: flutter build web --release
+        
+      - name: Upload Web artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-build
+          path: build/web/
+
+  # 发布Release
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build-android, build-ios, build-macos, build-windows, build-linux, build-web]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            android-apk/app-release.apk
+            android-aab/app-release.aab
+            ios-ipa/doyi.ipa
+            macos-dmg/doyi.dmg
+            windows-zip/doyi-windows.zip
+            linux-tar/doyi-linux.tar.gz
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 

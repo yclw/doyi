@@ -1,0 +1,60 @@
+name: Dependency Update
+
+on:
+  schedule:
+    # 每周一早上8点运行
+    - cron: '0 8 * * 1'
+  workflow_dispatch:
+
+jobs:
+  update-dependencies:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.0'
+          channel: 'stable'
+          
+      - name: Get current dependencies
+        run: flutter pub get
+        
+      - name: Update dependencies
+        run: flutter pub upgrade
+        
+      - name: Run tests
+        run: flutter test
+        
+      - name: Check for changes
+        id: verify-changed-files
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
+          
+      - name: Create Pull Request
+        if: steps.verify-changed-files.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'chore: update dependencies'
+          title: '🔄 自动更新依赖项'
+          body: |
+            ## 📦 依赖项更新
+            
+            此PR由GitHub Actions自动创建，包含以下更新：
+            
+            - 更新了Flutter依赖项到最新版本
+            - 所有测试通过
+            
+            请检查更新内容并合并。
+          branch: dependency-updates
+          delete-branch: true 
