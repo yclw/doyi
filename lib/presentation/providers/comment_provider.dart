@@ -29,6 +29,10 @@ class CommentProvider extends ChangeNotifier {
   int _currentSort = 0;
   int _currentPage = 1;
   
+  // 分页控制
+  bool _hasMorePages = true;
+  int _lastPageSize = 20; // 记录最后一次请求返回的评论数量
+  
   // Getters
   CommentState get state => _state;
   CommentListEntity? get commentList => _commentList;
@@ -51,13 +55,8 @@ class CommentProvider extends ChangeNotifier {
   int get totalCount => _commentList?.page.count ?? 0;
   int get currentPage => _currentPage;
   bool get hasMorePages {
-    if (_commentList == null) return false;
-    final totalCount = _commentList!.page.count;
-    final loadedCount = _commentList!.replies.length;
-    final hasMore = loadedCount < totalCount;
-    Logger.d('CommentProvider: hasMorePages检查 - 已加载:$loadedCount, 总数:$totalCount, 还有更多:$hasMore');
-    // 如果已加载的评论数量小于总数，说明还有更多
-    return hasMore;
+    Logger.d('CommentProvider: hasMorePages检查 - _hasMorePages:$_hasMorePages, 最后页大小:$_lastPageSize');
+    return _hasMorePages;
   }
   
   /// 获取评论列表
@@ -74,6 +73,8 @@ class CommentProvider extends ChangeNotifier {
     if (page == 1 && (_currentOid != oid || isRefresh)) {
       _commentList = null;
       _errorMessage = null;
+      _hasMorePages = true;
+      _lastPageSize = 20;
     }
     
     if (isRefresh || _state == CommentState.initial) {
@@ -105,10 +106,31 @@ class CommentProvider extends ChangeNotifier {
       (commentList) {
         Logger.d('CommentProvider: 评论列表获取成功 - 总数: ${commentList.page.count}');
         
+        // 记录当前页返回的评论数量
+        final currentPageRepliesCount = commentList.replies.length;
+        _lastPageSize = currentPageRepliesCount;
+        
+        // 判断是否还有更多页面 - 使用多重判断逻辑
+        if (currentPageRepliesCount == 0) {
+          // 如果返回0条评论，肯定没有更多了
+          _hasMorePages = false;
+        } else if (page == 1 || isRefresh) {
+          // 第一页：通过总数和已加载数量判断
+          final totalRootCount = commentList.page.count;
+          final loadedCount = currentPageRepliesCount;
+          _hasMorePages = loadedCount >= 20 && loadedCount < totalRootCount;
+        } else {
+          // 后续页面：如果返回的评论数量小于20，说明是最后一页
+          // 同时也要检查累计加载数量是否已达到总数
+          final totalRootCount = commentList.page.count;
+          final totalLoadedCount = (_commentList?.replies.length ?? 0) + currentPageRepliesCount;
+          _hasMorePages = currentPageRepliesCount >= 20 && totalLoadedCount < totalRootCount;
+        }
+        
         if (page == 1 || isRefresh) {
           _commentList = commentList;
           _currentPage = page;
-          Logger.d('CommentProvider: 设置第一页数据 - 热评:${commentList.hots.length}, 普通评论:${commentList.replies.length}');
+          Logger.d('CommentProvider: 设置第一页数据 - 热评:${commentList.hots.length}, 普通评论:${commentList.replies.length}, 总根评论数:${commentList.page.count}, 还有更多:$_hasMorePages');
         } else {
           // 加载更多，合并数据
           if (_commentList != null) {
@@ -126,11 +148,11 @@ class CommentProvider extends ChangeNotifier {
             );
             _currentPage = page; // 更新当前页码
             
-            Logger.d('CommentProvider: 合并数据完成 - 原有:$oldRepliesCount, 新增:$newRepliesCount, 总计:${_commentList!.replies.length}');
+            Logger.d('CommentProvider: 合并数据完成 - 原有:$oldRepliesCount, 新增:$newRepliesCount, 总计:${_commentList!.replies.length}, 总根评论数:${commentList.page.count}, 还有更多:$_hasMorePages');
           } else {
             _commentList = commentList;
             _currentPage = page;
-            Logger.d('CommentProvider: 首次设置数据 - 普通评论:${commentList.replies.length}');
+            Logger.d('CommentProvider: 首次设置数据 - 普通评论:${commentList.replies.length}, 还有更多:$_hasMorePages');
           }
         }
         
@@ -164,7 +186,7 @@ class CommentProvider extends ChangeNotifier {
     }
     
     final nextPage = _currentPage + 1;
-    Logger.d('CommentProvider: 开始加载第${nextPage}页评论');
+                Logger.d('CommentProvider: 开始加载第$nextPage页评论');
     
     await getCommentList(
       type: _currentType,
@@ -203,6 +225,8 @@ class CommentProvider extends ChangeNotifier {
     _currentPage = 1;
     _currentType = 1;
     _currentSort = 0;
+    _hasMorePages = true;
+    _lastPageSize = 20;
     _setState(CommentState.initial);
   }
   
