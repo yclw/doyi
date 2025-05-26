@@ -82,15 +82,21 @@ class QrLoginDatasourceImpl implements QrLoginDatasource {
         ),
       );
       
+      Logger.d('轮询响应: ${response.statusCode}');
+      
       if (response.data == null) {
+        Logger.e('轮询响应数据为空');
         throw const ServerException('轮询响应为空');
       }
       
       final data = response.data as Map<String, dynamic>;
+      Logger.d('轮询响应数据: $data');
+      
       final rootCode = data['code'] as int?;
       
       if (rootCode != 0) {
         final message = data['message'] as String? ?? '轮询失败';
+        Logger.e('轮询失败: code=$rootCode, message=$message');
         throw ServerException(message);
       }
       
@@ -100,11 +106,15 @@ class QrLoginDatasourceImpl implements QrLoginDatasource {
       return statusModel;
     } on DioException catch (e) {
       Logger.e('轮询二维码状态网络错误: ${e.message}');
-      throw NetworkException('轮询二维码状态失败: ${e.message}');
+      Logger.e('DioException详情: ${e.toString()}');
+      throw NetworkException('轮询二维码状态失败: ${e.message ?? '网络连接错误'}');
+    } on AppException catch (e) {
+      Logger.e('轮询二维码状态应用异常: ${e.message}');
+      rethrow;
     } catch (e) {
-      Logger.e('轮询二维码状态异常: $e');
-      if (e is AppException) rethrow;
-      throw ServerException('轮询二维码状态失败: $e');
+      Logger.e('轮询二维码状态未知异常: ${e.toString()}');
+      Logger.e('异常类型: ${e.runtimeType}');
+      throw ServerException('轮询二维码状态失败: ${e?.toString() ?? '未知错误'}');
     }
   }
 } 
