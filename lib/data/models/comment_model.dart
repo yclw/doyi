@@ -192,7 +192,7 @@ class CommentListModel extends CommentListEntity {
 /// 评论分页信息数据模型
 class CommentPageModel extends CommentPageEntity {
   const CommentPageModel({
-    required super.num,
+    required super.pageNum,
     required super.size,
     required super.count,
     required super.acount,
@@ -201,7 +201,7 @@ class CommentPageModel extends CommentPageEntity {
   /// 从B站API响应创建分页模型
   factory CommentPageModel.fromBilibiliApiResponse(Map<String, dynamic> json) {
     return CommentPageModel(
-      num: json['num'] as int? ?? 1,
+      pageNum: json['num'] as int? ?? 1,
       size: json['size'] as int? ?? 20,
       count: json['count'] as int? ?? 0,
       acount: json['acount'] as int? ?? 0,
@@ -238,7 +238,7 @@ class CommentReplyListModel extends CommentReplyListEntity {
 /// 评论回复分页信息数据模型
 class CommentReplyPageModel extends CommentReplyPageEntity {
   const CommentReplyPageModel({
-    required super.num,
+    required super.pageNum,
     required super.size,
     required super.count,
   });
@@ -246,7 +246,7 @@ class CommentReplyPageModel extends CommentReplyPageEntity {
   /// 从B站API响应创建回复分页模型
   factory CommentReplyPageModel.fromBilibiliApiResponse(Map<String, dynamic> json) {
     return CommentReplyPageModel(
-      num: json['num'] as int? ?? 1,
+      pageNum: json['num'] as int? ?? 1,
       size: json['size'] as int? ?? 20,
       count: json['count'] as int? ?? 0,
     );

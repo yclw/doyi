@@ -97,9 +97,6 @@ class _QrLoginPageState extends State<QrLoginPage> {
         
       case QrState.error:
         return _buildErrorState(authProvider);
-        
-      default:
-        return _buildInitialState();
     }
   }
   

@@ -75,18 +75,18 @@ void main() async {
       print('  - 错误对象: ${e.error}');
       print('  - 堆栈跟踪: ${e.stackTrace}');
       
-      if (e.response != null) {
-        print('  - 响应状态码: ${e.response?.statusCode}');
-        print('  - 响应头: ${e.response?.headers}');
-        print('  - 响应数据类型: ${e.response?.data.runtimeType}');
-        print('  - 响应数据: ${e.response?.data}');
+      final response = e.response;
+      if (response != null) {
+        print('  - 响应状态码: ${response.statusCode}');
+        print('  - 响应头: ${response.headers}');
+        print('  - 响应数据类型: ${response.data.runtimeType}');
+        print('  - 响应数据: ${response.data}');
       }
       
-      if (e.requestOptions != null) {
-        print('  - 请求URL: ${e.requestOptions.uri}');
-        print('  - 请求方法: ${e.requestOptions.method}');
-        print('  - 请求头: ${e.requestOptions.headers}');
-      }
+      final requestOptions = e.requestOptions;
+      print('  - 请求URL: ${requestOptions.uri}');
+      print('  - 请求方法: ${requestOptions.method}');
+      print('  - 请求头: ${requestOptions.headers}');
     }
   }
   

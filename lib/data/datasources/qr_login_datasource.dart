@@ -61,7 +61,7 @@ class QrLoginDatasourceImpl implements QrLoginDatasource {
     } catch (e) {
       Logger.e('申请二维码未知异常: ${e.toString()}');
       Logger.e('异常类型: ${e.runtimeType}');
-      throw ServerException('申请二维码失败: ${e?.toString() ?? '未知错误'}');
+      throw ServerException('申请二维码失败: ${e.toString()}');
     }
   }
   
@@ -114,7 +114,7 @@ class QrLoginDatasourceImpl implements QrLoginDatasource {
     } catch (e) {
       Logger.e('轮询二维码状态未知异常: ${e.toString()}');
       Logger.e('异常类型: ${e.runtimeType}');
-      throw ServerException('轮询二维码状态失败: ${e?.toString() ?? '未知错误'}');
+      throw ServerException('轮询二维码状态失败: ${e.toString()}');
     }
   }
 } 

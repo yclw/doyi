@@ -174,20 +174,20 @@ class CommentListEntity extends Equatable {
 
 /// 评论分页信息实体
 class CommentPageEntity extends Equatable {
-  final int num;
+  final int pageNum;
   final int size;
   final int count;
   final int acount;
   
   const CommentPageEntity({
-    required this.num,
+    required this.pageNum,
     required this.size,
     required this.count,
     required this.acount,
   });
   
   @override
-  List<Object> get props => [num, size, count, acount];
+  List<Object> get props => [pageNum, size, count, acount];
 }
 
 /// 评论回复列表实体
@@ -208,16 +208,16 @@ class CommentReplyListEntity extends Equatable {
 
 /// 评论回复分页信息实体
 class CommentReplyPageEntity extends Equatable {
-  final int num;
+  final int pageNum;
   final int size;
   final int count;
   
   const CommentReplyPageEntity({
-    required this.num,
+    required this.pageNum,
     required this.size,
     required this.count,
   });
   
   @override
-  List<Object> get props => [num, size, count];
+  List<Object> get props => [pageNum, size, count];
 } 

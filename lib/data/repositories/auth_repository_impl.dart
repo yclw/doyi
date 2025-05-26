@@ -107,7 +107,7 @@ class AuthRepositoryImpl implements AuthRepository {
       }
       
       return Right(isLoggedIn);
-    } on NetworkException catch (e) {
+    } on NetworkException {
       // 网络异常时从本地获取状态
       final localStatus = await _localDatasource.getLoginStatus();
       return Right(localStatus);
