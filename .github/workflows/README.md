@@ -101,7 +101,7 @@
 - name: Setup Flutter
   uses: subosito/flutter-action@v2
   with:
-    flutter-version: '3.24.0'  # 修改这里
+    flutter-version: '3.32.0'  # 修改这里
     channel: 'stable'
 ```
 
