@@ -31,15 +31,21 @@ class QrLoginDatasourceImpl implements QrLoginDatasource {
         ),
       );
       
+      Logger.d('二维码申请响应: ${response.statusCode}');
+      
       if (response.data == null) {
+        Logger.e('二维码申请响应数据为空');
         throw const ServerException('二维码申请响应为空');
       }
       
       final data = response.data as Map<String, dynamic>;
+      Logger.d('二维码申请响应数据: $data');
+      
       final code = data['code'] as int?;
       
       if (code != 0) {
         final message = data['message'] as String? ?? '申请二维码失败';
+        Logger.e('二维码申请失败: code=$code, message=$message');
         throw ServerException(message);
       }
       
@@ -47,11 +53,15 @@ class QrLoginDatasourceImpl implements QrLoginDatasource {
       return QrCodeModel.fromBilibiliApiResponse(data);
     } on DioException catch (e) {
       Logger.e('申请二维码网络错误: ${e.message}');
-      throw NetworkException('申请二维码失败: ${e.message}');
+      Logger.e('DioException详情: ${e.toString()}');
+      throw NetworkException('申请二维码失败: ${e.message ?? '网络连接错误'}');
+    } on AppException catch (e) {
+      Logger.e('申请二维码应用异常: ${e.message}');
+      rethrow;
     } catch (e) {
-      Logger.e('申请二维码异常: $e');
-      if (e is AppException) rethrow;
-      throw ServerException('申请二维码失败: $e');
+      Logger.e('申请二维码未知异常: ${e.toString()}');
+      Logger.e('异常类型: ${e.runtimeType}');
+      throw ServerException('申请二维码失败: ${e?.toString() ?? '未知错误'}');
     }
   }
   
