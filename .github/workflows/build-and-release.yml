@@ -136,6 +136,9 @@ jobs:
       - name: Create DMG
         run: |
           brew install create-dmg
+          # 创建临时目录，只包含应用程序
+          mkdir -p dmg_temp
+          cp -r "build/macos/Build/Products/Release/doyi.app" dmg_temp/
           create-dmg \
             --volname "Doyi" \
             --window-pos 200 120 \
@@ -145,7 +148,7 @@ jobs:
             --hide-extension "doyi.app" \
             --app-drop-link 425 120 \
             "doyi.dmg" \
-            "build/macos/Build/Products/Release/"
+            "dmg_temp/"
             
       - name: Upload macOS artifact
         uses: actions/upload-artifact@v4
