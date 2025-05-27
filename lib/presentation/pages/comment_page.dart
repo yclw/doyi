@@ -63,8 +63,34 @@ class _CommentPageState extends State<CommentPage> {
         _scrollController.position.maxScrollExtent - 100 &&
         !provider.isLoading &&
         provider.hasMorePages) {
-      provider.loadMoreComments();
+      provider.loadMoreComments().then((_) {
+        // 加载更多后，清理可能过时的GlobalKey
+        _cleanupObsoleteKeys();
+      });
     }
+  }
+  
+  /// 清理过时的GlobalKey
+  void _cleanupObsoleteKeys() {
+    final commentProvider = context.read<CommentProvider>();
+    final hotComments = commentProvider.hotComments;
+    final normalComments = commentProvider.normalComments;
+    
+    // 收集当前有效的key
+    final validKeys = <String>{};
+    
+    // 热评的有效key
+    for (int i = 0; i < hotComments.length; i++) {
+      validKeys.add('hot_${hotComments[i].rpid}_$i');
+    }
+    
+    // 普通评论的有效key
+    for (int i = 0; i < normalComments.length; i++) {
+      validKeys.add('normal_${normalComments[i].rpid}_$i');
+    }
+    
+    // 移除无效的key
+    _commentKeys.removeWhere((key, value) => !validKeys.contains(key));
   }
   
   /// 导航到回复页面
@@ -166,15 +192,179 @@ class _CommentPageState extends State<CommentPage> {
     // 找到根评论ID（如果是回复，需要找到其根评论）
     final rootRpid = comment.root == 0 ? comment.rpid : comment.root;
     
-    // 尝试在热评和普通评论中查找对应的key
-    GlobalKey? foundKey;
+    _scrollToCommentByRpid(rootRpid, comment.member.uname);
+  }
+  
+  /// 根据评论ID智能滚动到指定评论
+  Future<void> _scrollToCommentByRpid(int targetRpid, String username) async {
     final commentProvider = context.read<CommentProvider>();
+    final hotComments = commentProvider.hotComments;
+    final normalComments = commentProvider.normalComments;
+    
+    // 计算目标评论在ListView中的索引位置
+    int? targetIndex = _findCommentIndex(targetRpid, hotComments, normalComments);
+    
+    if (targetIndex != null) {
+      // 直接滚动到计算出的位置
+      await _scrollToIndex(targetIndex);
+      
+      // 等待滚动完成后，尝试使用GlobalKey进行精确定位
+      await Future.delayed(const Duration(milliseconds: 600));
+      _tryScrollWithGlobalKey(targetRpid, hotComments, normalComments);
+      
+      // 显示成功提示
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('已定位到 @$username 的评论'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } else {
+      // 评论不在当前已加载的数据中，尝试加载更多
+      await _loadMoreUntilFound(targetRpid, username);
+    }
+  }
+  
+  /// 查找评论在ListView中的索引位置
+  int? _findCommentIndex(int targetRpid, List<CommentEntity> hotComments, List<CommentEntity> normalComments) {
+    int index = 0;
+    
+    // 热评区域
+    if (hotComments.isNotEmpty) {
+      index++; // 热评标题
+      
+      for (int i = 0; i < hotComments.length; i++) {
+        if (hotComments[i].rpid == targetRpid) {
+          return index;
+        }
+        index++;
+      }
+    }
+    
+    // 普通评论区域
+    if (normalComments.isNotEmpty) {
+      index++; // 普通评论标题
+      
+      for (int i = 0; i < normalComments.length; i++) {
+        if (normalComments[i].rpid == targetRpid) {
+          return index;
+        }
+        index++;
+      }
+    }
+    
+    return null; // 未找到
+  }
+  
+  /// 滚动到指定索引位置
+  Future<void> _scrollToIndex(int index) async {
+    if (!_scrollController.hasClients) return;
+    
+    // 更精确的高度估算
+    const double sectionHeaderHeight = 60.0; // 标题高度
+    const double padding = 16.0; // 上下padding
+    
+    final commentProvider = context.read<CommentProvider>();
+    final hotComments = commentProvider.hotComments;
+    final normalComments = commentProvider.normalComments;
+    
+    double targetOffset = padding; // 初始padding
+    int currentIndex = 0;
+    
+    // 计算到目标索引的累计高度
+    if (hotComments.isNotEmpty) {
+      if (currentIndex == index) {
+        // 目标是热评标题
+        await _scrollController.animateTo(
+          targetOffset,
+          duration: const Duration(milliseconds: 800),
+          curve: Curves.easeInOut,
+        );
+        return;
+      }
+      
+      targetOffset += sectionHeaderHeight; // 热评标题高度
+      currentIndex++;
+      
+      // 热评内容
+      for (int i = 0; i < hotComments.length && currentIndex <= index; i++) {
+        if (currentIndex == index) {
+          break;
+        }
+        targetOffset += _estimateCommentHeight(hotComments[i]);
+        currentIndex++;
+      }
+    }
+    
+    if (normalComments.isNotEmpty && currentIndex <= index) {
+      if (currentIndex == index) {
+        // 目标是普通评论标题
+        await _scrollController.animateTo(
+          targetOffset,
+          duration: const Duration(milliseconds: 800),
+          curve: Curves.easeInOut,
+        );
+        return;
+      }
+      
+      targetOffset += sectionHeaderHeight; // 普通评论标题高度
+      currentIndex++;
+      
+      // 普通评论内容
+      for (int i = 0; i < normalComments.length && currentIndex <= index; i++) {
+        if (currentIndex == index) {
+          break;
+        }
+        targetOffset += _estimateCommentHeight(normalComments[i]);
+        currentIndex++;
+      }
+    }
+    
+    // 确保不超过最大滚动范围
+    final maxScrollExtent = _scrollController.position.maxScrollExtent;
+    if (targetOffset > maxScrollExtent) {
+      targetOffset = maxScrollExtent * 0.9; // 留一点余量
+    }
+    
+    // 平滑滚动到目标位置
+    await _scrollController.animateTo(
+      targetOffset,
+      duration: const Duration(milliseconds: 800),
+      curve: Curves.easeInOut,
+    );
+  }
+  
+  /// 估算单个评论的高度
+  double _estimateCommentHeight(CommentEntity comment) {
+    const double baseHeight = 100.0; // 基础高度（头像、用户名、时间、操作按钮）
+    const double lineHeight = 20.0; // 每行文字高度
+    const double marginBottom = 12.0; // 底部间距
+    
+    // 根据评论内容长度估算行数
+    final contentLength = comment.content.message.length;
+    final estimatedLines = (contentLength / 30).ceil().clamp(1, 10); // 假设每行30个字符，最多10行
+    
+    double height = baseHeight + (estimatedLines * lineHeight) + marginBottom;
+    
+    // 如果有回复，增加回复区域高度
+    if (comment.replies != null && comment.replies!.isNotEmpty) {
+      final replyCount = comment.replies!.length.clamp(0, 3); // 最多显示3条回复
+      height += replyCount * 30.0 + 24.0; // 每条回复30px + 回复区域padding
+    }
+    
+    return height;
+  }
+  
+  /// 使用GlobalKey进行精确定位
+  void _tryScrollWithGlobalKey(int targetRpid, List<CommentEntity> hotComments, List<CommentEntity> normalComments) {
+    GlobalKey? foundKey;
     
     // 在热评中查找
-    final hotComments = commentProvider.hotComments;
     for (int i = 0; i < hotComments.length; i++) {
-      if (hotComments[i].rpid == rootRpid) {
-        final keyString = 'hot_${rootRpid}_$i';
+      if (hotComments[i].rpid == targetRpid) {
+        final keyString = 'hot_${targetRpid}_$i';
         foundKey = _commentKeys[keyString];
         break;
       }
@@ -182,38 +372,68 @@ class _CommentPageState extends State<CommentPage> {
     
     // 如果在热评中没找到，在普通评论中查找
     if (foundKey == null) {
-      final normalComments = commentProvider.normalComments;
       for (int i = 0; i < normalComments.length; i++) {
-        if (normalComments[i].rpid == rootRpid) {
-          final keyString = 'normal_${rootRpid}_$i';
+        if (normalComments[i].rpid == targetRpid) {
+          final keyString = 'normal_${targetRpid}_$i';
           foundKey = _commentKeys[keyString];
           break;
         }
       }
     }
     
-    if (foundKey != null && foundKey.currentContext != null) {
-      // 滚动到评论位置
+    // 如果找到了GlobalKey且已渲染，进行精确滚动
+    if (foundKey?.currentContext != null) {
       Scrollable.ensureVisible(
-        foundKey.currentContext!,
-        duration: const Duration(milliseconds: 500),
+        foundKey!.currentContext!,
+        duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
         alignment: 0.1, // 滚动到屏幕顶部10%的位置
       );
+    }
+  }
+  
+  /// 加载更多数据直到找到目标评论
+  Future<void> _loadMoreUntilFound(int targetRpid, String username) async {
+    final commentProvider = context.read<CommentProvider>();
+    int maxAttempts = 5; // 最多尝试加载5次
+    int attempts = 0;
+    
+    while (attempts < maxAttempts && commentProvider.hasMorePages) {
+      // 显示加载提示
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('正在加载更多评论以查找 @$username 的评论... (${attempts + 1}/$maxAttempts)'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
       
-      // 显示提示信息
+      // 加载更多评论
+      await commentProvider.loadMoreComments();
+      attempts++;
+      
+      // 检查是否找到了目标评论
+      final normalComments = commentProvider.normalComments;
+      final hotComments = commentProvider.hotComments;
+      
+      if (_findCommentIndex(targetRpid, hotComments, normalComments) != null) {
+        // 找到了，递归调用进行滚动
+        await _scrollToCommentByRpid(targetRpid, username);
+        return;
+      }
+      
+      // 等待一下再继续
+      await Future.delayed(const Duration(milliseconds: 500));
+    }
+    
+    // 如果还是没找到，显示失败提示
+    if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('已定位到 @${comment.member.uname} 的评论'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    } else {
-      // 如果找不到评论，可能是因为评论还没有加载
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('该评论可能还未加载，请尝试加载更多评论'),
-          duration: Duration(seconds: 2),
+          content: Text('未能找到 @$username 的评论，可能已被删除或在更远的页面中'),
+          duration: const Duration(seconds: 3),
+          backgroundColor: Colors.orange,
         ),
       );
     }
@@ -307,7 +527,10 @@ class _CommentPageState extends State<CommentPage> {
           Consumer<CommentProvider>(
             builder: (context, commentProvider, child) {
               return RefreshIndicator(
-                onRefresh: () => commentProvider.refreshComments(),
+                onRefresh: () async {
+                  _commentKeys.clear(); // 刷新时清理所有GlobalKey
+                  await commentProvider.refreshComments();
+                },
                 child: _buildBody(commentProvider),
               );
             },
