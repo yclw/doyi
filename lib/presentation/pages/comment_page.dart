@@ -33,13 +33,14 @@ class _CommentPageState extends State<CommentPage> {
   int _currentSort = 0; // 0: 按时间, 1: 按点赞数, 2: 按回复数
   CommentEntity? _replyToComment; // 当前要回复的评论
   bool _showReplyInput = false; // 是否显示回复输入框
-  final Map<int, GlobalKey> _commentKeys = {}; // 评论项的GlobalKey映射
+  final Map<String, GlobalKey> _commentKeys = {}; // 评论项的GlobalKey映射
   
   @override
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      _commentKeys.clear(); // 清理旧的GlobalKey
       context.read<CommentProvider>().reset();
       context.read<CommentProvider>().getCommentList(
         type: widget.type,
@@ -149,11 +150,12 @@ class _CommentPageState extends State<CommentPage> {
   }
   
   /// 获取评论的GlobalKey
-  GlobalKey _getCommentKey(int rpid) {
-    if (!_commentKeys.containsKey(rpid)) {
-      _commentKeys[rpid] = GlobalKey();
+  GlobalKey _getCommentKey(int rpid, String section, int index) {
+    final keyString = '${section}_${rpid}_$index';
+    if (!_commentKeys.containsKey(keyString)) {
+      _commentKeys[keyString] = GlobalKey();
     }
-    return _commentKeys[rpid]!;
+    return _commentKeys[keyString]!;
   }
   
   /// 滚动到指定评论
@@ -163,12 +165,37 @@ class _CommentPageState extends State<CommentPage> {
     
     // 找到根评论ID（如果是回复，需要找到其根评论）
     final rootRpid = comment.root == 0 ? comment.rpid : comment.root;
-    final key = _commentKeys[rootRpid];
     
-         if (key != null && key.currentContext != null) {
-       // 滚动到评论位置
-       Scrollable.ensureVisible(
-         key.currentContext!,
+    // 尝试在热评和普通评论中查找对应的key
+    GlobalKey? foundKey;
+    final commentProvider = context.read<CommentProvider>();
+    
+    // 在热评中查找
+    final hotComments = commentProvider.hotComments;
+    for (int i = 0; i < hotComments.length; i++) {
+      if (hotComments[i].rpid == rootRpid) {
+        final keyString = 'hot_${rootRpid}_$i';
+        foundKey = _commentKeys[keyString];
+        break;
+      }
+    }
+    
+    // 如果在热评中没找到，在普通评论中查找
+    if (foundKey == null) {
+      final normalComments = commentProvider.normalComments;
+      for (int i = 0; i < normalComments.length; i++) {
+        if (normalComments[i].rpid == rootRpid) {
+          final keyString = 'normal_${rootRpid}_$i';
+          foundKey = _commentKeys[keyString];
+          break;
+        }
+      }
+    }
+    
+    if (foundKey != null && foundKey.currentContext != null) {
+      // 滚动到评论位置
+      Scrollable.ensureVisible(
+        foundKey.currentContext!,
         duration: const Duration(milliseconds: 500),
         curve: Curves.easeInOut,
         alignment: 0.1, // 滚动到屏幕顶部10%的位置
@@ -436,7 +463,7 @@ class _CommentPageState extends State<CommentPage> {
       
       if (currentIndex < hotComments.length) {
         final comment = hotComments[currentIndex];
-        final key = _getCommentKey(comment.rpid);
+        final key = _getCommentKey(comment.rpid, 'hot', currentIndex);
         return CommentItem(
           key: key,
           comment: comment,
@@ -459,7 +486,7 @@ class _CommentPageState extends State<CommentPage> {
       
       if (currentIndex < normalComments.length) {
         final comment = normalComments[currentIndex];
-        final key = _getCommentKey(comment.rpid);
+        final key = _getCommentKey(comment.rpid, 'normal', currentIndex);
         return CommentItem(
           key: key,
           comment: comment,

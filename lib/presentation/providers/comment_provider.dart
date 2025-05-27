@@ -137,9 +137,16 @@ class CommentProvider extends ChangeNotifier {
             final oldRepliesCount = _commentList!.replies.length;
             final newRepliesCount = commentList.replies.length;
             
-            // 创建新的合并列表
+            // 创建新的合并列表，避免重复评论
             final mergedReplies = List<CommentEntity>.from(_commentList!.replies);
-            mergedReplies.addAll(commentList.replies);
+            
+            // 检查并添加新评论，避免重复
+            for (final newComment in commentList.replies) {
+              final exists = mergedReplies.any((existing) => existing.rpid == newComment.rpid);
+              if (!exists) {
+                mergedReplies.add(newComment);
+              }
+            }
             
             _commentList = CommentListEntity(
               page: commentList.page,
@@ -148,7 +155,7 @@ class CommentProvider extends ChangeNotifier {
             );
             _currentPage = page; // 更新当前页码
             
-            Logger.d('CommentProvider: 合并数据完成 - 原有:$oldRepliesCount, 新增:$newRepliesCount, 总计:${_commentList!.replies.length}, 总根评论数:${commentList.page.count}, 还有更多:$_hasMorePages');
+            Logger.d('CommentProvider: 合并数据完成 - 原有:$oldRepliesCount, 新增:$newRepliesCount, 实际新增:${mergedReplies.length - oldRepliesCount}, 总计:${mergedReplies.length}, 总根评论数:${commentList.page.count}, 还有更多:$_hasMorePages');
           } else {
             _commentList = commentList;
             _currentPage = page;
