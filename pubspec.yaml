@@ -32,7 +32,7 @@ dependencies:
   qr_flutter: ^4.1.0
   
   # 函数式编程
-  dartz: ^0.10.1
+  # dartz: ^0.10.1
   
   # 依赖注入
   get_it: ^8.0.3

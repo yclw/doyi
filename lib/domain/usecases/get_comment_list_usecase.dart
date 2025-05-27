@@ -1,7 +1,6 @@
-import 'package:dartz/dartz.dart';
+import '../../core/utils/result.dart';
 import '../entities/comment_entity.dart';
 import '../repositories/auth_repository.dart';
-import '../../core/errors/failures.dart';
 
 /// 获取评论列表用例
 class GetCommentListUsecase {
@@ -9,7 +8,7 @@ class GetCommentListUsecase {
   
   GetCommentListUsecase(this._repository);
   
-  Future<Either<Failure, CommentListEntity>> call({
+  Future<Result<CommentListEntity>> call({
     required int type,
     required int oid,
     int sort = 0,

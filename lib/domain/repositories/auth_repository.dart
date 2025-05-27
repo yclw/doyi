@@ -1,31 +1,30 @@
-import 'package:dartz/dartz.dart';
+import '../../core/utils/result.dart';
 import '../entities/user_entity.dart';
 import '../entities/qr_code_entity.dart';
 import '../entities/comment_entity.dart';
-import '../../core/errors/failures.dart';
 
 /// 认证仓库接口
 abstract class AuthRepository {
   /// 生成二维码
-  Future<Either<Failure, QrCodeEntity>> generateQrCode();
+  Future<Result<QrCodeEntity>> generateQrCode();
   
   /// 轮询二维码状态
-  Future<Either<Failure, QrStatusEntity>> pollQrStatus(String qrcodeKey);
+  Future<Result<QrStatusEntity>> pollQrStatus(String qrcodeKey);
   
   /// 获取用户信息
-  Future<Either<Failure, UserEntity>> getUserInfo();
+  Future<Result<UserEntity>> getUserInfo();
   
   /// 获取缓存的用户信息
-  Future<Either<Failure, UserEntity?>> getCachedUserInfo();
+  Future<Result<UserEntity?>> getCachedUserInfo();
   
   /// 检查登录状态
-  Future<Either<Failure, bool>> checkLoginStatus();
+  Future<Result<bool>> checkLoginStatus();
   
   /// 退出登录
-  Future<Either<Failure, bool>> logout();
+  Future<Result<bool>> logout();
   
   /// 获取评论列表
-  Future<Either<Failure, CommentListEntity>> getCommentList({
+  Future<Result<CommentListEntity>> getCommentList({
     required int type,
     required int oid,
     int sort = 0,
@@ -35,7 +34,7 @@ abstract class AuthRepository {
   });
   
   /// 获取评论回复
-  Future<Either<Failure, CommentReplyListEntity>> getCommentReplies({
+  Future<Result<CommentReplyListEntity>> getCommentReplies({
     required int type,
     required int oid,
     required int root,

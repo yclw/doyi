@@ -1,4 +1,4 @@
-import 'package:dartz/dartz.dart';
+import '../../core/utils/result.dart';
 import '../../core/errors/exceptions.dart';
 import '../../core/errors/failures.dart';
 import '../../core/network/cookie_manager.dart';
@@ -29,21 +29,21 @@ class AuthRepositoryImpl implements AuthRepository {
   );
   
   @override
-  Future<Either<Failure, QrCodeEntity>> generateQrCode() async {
+  Future<Result<QrCodeEntity>> generateQrCode() async {
     try {
       final qrCode = await _qrLoginDatasource.generateQrCode();
-      return Right(qrCode);
+      return Result.success(qrCode);
     } on NetworkException catch (e) {
-      return Left(NetworkFailure(e.message));
+      return Result.failure(NetworkFailure(e.message));
     } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
+      return Result.failure(ServerFailure(e.message));
     } catch (e) {
-      return Left(ServerFailure('生成二维码失败: $e'));
+      return Result.failure(ServerFailure('生成二维码失败: $e'));
     }
   }
   
   @override
-  Future<Either<Failure, QrStatusEntity>> pollQrStatus(String qrcodeKey) async {
+  Future<Result<QrStatusEntity>> pollQrStatus(String qrcodeKey) async {
     try {
       final status = await _qrLoginDatasource.pollQrStatus(qrcodeKey);
       
@@ -52,18 +52,18 @@ class AuthRepositoryImpl implements AuthRepository {
         await _extractAndSaveCookie(status.url!);
       }
       
-      return Right(status);
+      return Result.success(status);
     } on NetworkException catch (e) {
-      return Left(NetworkFailure(e.message));
+      return Result.failure(NetworkFailure(e.message));
     } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
+      return Result.failure(ServerFailure(e.message));
     } catch (e) {
-      return Left(ServerFailure('轮询二维码状态失败: $e'));
+      return Result.failure(ServerFailure('轮询二维码状态失败: $e'));
     }
   }
   
   @override
-  Future<Either<Failure, UserEntity>> getUserInfo() async {
+  Future<Result<UserEntity>> getUserInfo() async {
     try {
       final user = await _userDatasource.getUserInfo();
       
@@ -71,33 +71,33 @@ class AuthRepositoryImpl implements AuthRepository {
       await _localDatasource.cacheUserInfo(user);
       await _localDatasource.setLoginStatus(true);
       
-      return Right(user);
+      return Result.success(user);
     } on NetworkException catch (e) {
       // 网络异常时尝试从缓存获取
       return await _getCachedUserInfoWithFallback(e.message);
     } on AuthException catch (e) {
       // 认证失败，清除本地数据
       await _clearLocalData();
-      return Left(AuthFailure(e.message));
+      return Result.failure(AuthFailure(e.message));
     } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
+      return Result.failure(ServerFailure(e.message));
     } catch (e) {
-      return Left(ServerFailure('获取用户信息失败: $e'));
+      return Result.failure(ServerFailure('获取用户信息失败: $e'));
     }
   }
   
   @override
-  Future<Either<Failure, UserEntity?>> getCachedUserInfo() async {
+  Future<Result<UserEntity?>> getCachedUserInfo() async {
     try {
       final user = await _localDatasource.getCachedUserInfo();
-      return Right(user);
+      return Result.success(user);
     } catch (e) {
-      return Left(CacheFailure('获取缓存用户信息失败: $e'));
+      return Result.failure(CacheFailure('获取缓存用户信息失败: $e'));
     }
   }
   
   @override
-  Future<Either<Failure, bool>> checkLoginStatus() async {
+  Future<Result<bool>> checkLoginStatus() async {
     try {
       final isLoggedIn = await _userDatasource.checkLoginStatus();
       await _localDatasource.setLoginStatus(isLoggedIn);
@@ -106,29 +106,29 @@ class AuthRepositoryImpl implements AuthRepository {
         await _clearLocalData();
       }
       
-      return Right(isLoggedIn);
+      return Result.success(isLoggedIn);
     } on NetworkException {
       // 网络异常时从本地获取状态
       final localStatus = await _localDatasource.getLoginStatus();
-      return Right(localStatus);
+      return Result.success(localStatus);
     } catch (e) {
-      return Left(NetworkFailure('检查登录状态失败: $e'));
+      return Result.failure(NetworkFailure('检查登录状态失败: $e'));
     }
   }
   
   @override
-  Future<Either<Failure, bool>> logout() async {
+  Future<Result<bool>> logout() async {
     try {
       await _clearLocalData();
       await _cookieManager.clearCookie();
-      return const Right(true);
+      return const Result.success(true);
     } catch (e) {
-      return Left(CacheFailure('退出登录失败: $e'));
+      return Result.failure(CacheFailure('退出登录失败: $e'));
     }
   }
   
   @override
-  Future<Either<Failure, CommentListEntity>> getCommentList({
+  Future<Result<CommentListEntity>> getCommentList({
     required int type,
     required int oid,
     int sort = 0,
@@ -145,20 +145,20 @@ class AuthRepositoryImpl implements AuthRepository {
         ps: ps,
         pn: pn,
       );
-      return Right(commentList);
+      return Result.success(commentList);
     } on NetworkException catch (e) {
-      return Left(NetworkFailure(e.message));
+      return Result.failure(NetworkFailure(e.message));
     } on AuthException catch (e) {
-      return Left(AuthFailure(e.message));
+      return Result.failure(AuthFailure(e.message));
     } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
+      return Result.failure(ServerFailure(e.message));
     } catch (e) {
-      return Left(ServerFailure('获取评论列表失败: $e'));
+      return Result.failure(ServerFailure('获取评论列表失败: $e'));
     }
   }
   
   @override
-  Future<Either<Failure, CommentReplyListEntity>> getCommentReplies({
+  Future<Result<CommentReplyListEntity>> getCommentReplies({
     required int type,
     required int oid,
     required int root,
@@ -173,15 +173,15 @@ class AuthRepositoryImpl implements AuthRepository {
         ps: ps,
         pn: pn,
       );
-      return Right(replyList);
+      return Result.success(replyList);
     } on NetworkException catch (e) {
-      return Left(NetworkFailure(e.message));
+      return Result.failure(NetworkFailure(e.message));
     } on AuthException catch (e) {
-      return Left(AuthFailure(e.message));
+      return Result.failure(AuthFailure(e.message));
     } on ServerException catch (e) {
-      return Left(ServerFailure(e.message));
+      return Result.failure(ServerFailure(e.message));
     } catch (e) {
-      return Left(ServerFailure('获取评论回复失败: $e'));
+      return Result.failure(ServerFailure('获取评论回复失败: $e'));
     }
   }
   
@@ -218,16 +218,16 @@ class AuthRepositoryImpl implements AuthRepository {
   }
   
   /// 网络异常时从缓存获取用户信息
-  Future<Either<Failure, UserEntity>> _getCachedUserInfoWithFallback(String errorMessage) async {
+  Future<Result<UserEntity>> _getCachedUserInfoWithFallback(String errorMessage) async {
     try {
       final cachedUser = await _localDatasource.getCachedUserInfo();
       if (cachedUser != null) {
-        return Right(cachedUser);
+        return Result.success(cachedUser);
       } else {
-        return Left(NetworkFailure(errorMessage));
+        return Result.failure(NetworkFailure(errorMessage));
       }
     } catch (e) {
-      return Left(NetworkFailure(errorMessage));
+      return Result.failure(NetworkFailure(errorMessage));
     }
   }
 } 

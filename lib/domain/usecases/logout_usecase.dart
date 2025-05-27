@@ -1,6 +1,5 @@
-import 'package:dartz/dartz.dart';
+import '../../core/utils/result.dart';
 import '../repositories/auth_repository.dart';
-import '../../core/errors/failures.dart';
 
 /// 退出登录用例
 class LogoutUsecase {
@@ -8,7 +7,7 @@ class LogoutUsecase {
   
   LogoutUsecase(this._repository);
   
-  Future<Either<Failure, bool>> call() async {
+  Future<Result<bool>> call() async {
     return await _repository.logout();
   }
 } 
