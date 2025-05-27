@@ -232,38 +232,10 @@ jobs:
           name: linux-tar
           path: doyi-linux.tar.gz
 
-  # Web构建
-  build-web:
-    needs: analyze
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.32.0'
-          channel: 'stable'
-          
-      - name: Get dependencies
-        run: flutter pub get
-        
-      - name: Generate launcher icons
-        run: flutter pub run flutter_launcher_icons
-        
-      - name: Build Web
-        run: flutter build web --release
-        
-      - name: Upload Web artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: web-build
-          path: build/web/
-
   # 发布Release
   release:
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [build-android, build-ios, build-macos, build-windows, build-linux, build-web]
+    needs: [build-android, build-ios, build-macos, build-windows, build-linux]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

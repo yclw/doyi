@@ -1,5 +1,5 @@
 name: doyi
-description: "B站二维码登录Flutter应用"
+description: "Doyi评论助手"
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -62,9 +62,6 @@ flutter_launcher_icons:
   image_path: "assets/images/doyi.png"
   min_sdk_android: 21
   remove_alpha_ios: true
-  web:
-    generate: true
-    image_path: "assets/images/doyi.png"
   windows:
     generate: true
     image_path: "assets/images/doyi.png"
