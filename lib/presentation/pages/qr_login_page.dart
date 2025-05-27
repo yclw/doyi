@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:qr_flutter/qr_flutter.dart';
+import 'package:qr/qr.dart';
 import '../providers/auth_provider.dart';
 
 /// 二维码登录页面
@@ -146,12 +146,7 @@ class _QrLoginPageState extends State<QrLoginPage> {
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 children: [
-                  QrImageView(
-                    data: qrCode.url,
-                    version: QrVersions.auto,
-                    size: 200.0,
-                    backgroundColor: Colors.white,
-                  ),
+                  _buildQrCode(qrCode.url),
                   const SizedBox(height: 16),
                   Text(
                     _getQrStatusText(authProvider.qrState),
@@ -334,4 +329,72 @@ class _QrLoginPageState extends State<QrLoginPage> {
         return '二维码已生成';
     }
   }
+  
+  /// 构建二维码组件
+  Widget _buildQrCode(String data) {
+    try {
+      final qrCode = QrCode.fromData(
+        data: data,
+        errorCorrectLevel: QrErrorCorrectLevel.M,
+      );
+      
+      final qrImage = QrImage(qrCode);
+      
+      return Container(
+        width: 200.0,
+        height: 200.0,
+        color: Colors.white,
+        child: CustomPaint(
+          size: const Size(200.0, 200.0),
+          painter: QrPainter(qrImage),
+        ),
+      );
+    } catch (e) {
+      return Container(
+        width: 200.0,
+        height: 200.0,
+        color: Colors.grey[200],
+        child: const Center(
+          child: Text(
+            '二维码生成失败',
+            style: TextStyle(color: Colors.red),
+          ),
+        ),
+      );
+    }
+  }
+}
+
+/// 二维码绘制器
+class QrPainter extends CustomPainter {
+  final QrImage qrImage;
+  
+  QrPainter(this.qrImage);
+  
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.black
+      ..style = PaintingStyle.fill;
+    
+    final moduleCount = qrImage.moduleCount;
+    final moduleSize = size.width / moduleCount;
+    
+    for (int x = 0; x < moduleCount; x++) {
+      for (int y = 0; y < moduleCount; y++) {
+        if (qrImage.isDark(y, x)) {
+          final rect = Rect.fromLTWH(
+            x * moduleSize,
+            y * moduleSize,
+            moduleSize,
+            moduleSize,
+          );
+          canvas.drawRect(rect, paint);
+        }
+      }
+    }
+  }
+  
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) => false;
 } 
