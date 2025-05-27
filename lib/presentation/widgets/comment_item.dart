@@ -5,11 +5,13 @@ import '../../domain/entities/comment_entity.dart';
 class CommentItem extends StatelessWidget {
   final CommentEntity comment;
   final VoidCallback? onReplyTap;
+  final Function(CommentEntity comment)? onReplyToComment; // 回复评论回调
   
   const CommentItem({
     super.key,
     required this.comment,
     this.onReplyTap,
+    this.onReplyToComment,
   });
   
   @override
@@ -154,7 +156,9 @@ class CommentItem extends StatelessWidget {
           icon: Icons.comment_outlined,
           count: comment.rcount,
           onTap: () {
-            // TODO: 实现回复功能
+            if (onReplyToComment != null) {
+              onReplyToComment!(comment);
+            }
           },
         ),
         const Spacer(),

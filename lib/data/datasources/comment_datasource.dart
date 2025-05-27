@@ -24,6 +24,15 @@ abstract class CommentDatasource {
     int ps = 20,
     int pn = 1,
   });
+  
+  Future<CommentAddResponseModel> addComment({
+    required int type,
+    required int oid,
+    required String message,
+    int? root,
+    int? parent,
+    int plat = 1,
+  });
 }
 
 /// 评论数据源实现
@@ -170,6 +179,112 @@ class CommentDatasourceImpl implements CommentDatasource {
       Logger.e('获取评论回复异常: $e');
       if (e is AppException) rethrow;
       throw ServerException('获取评论回复失败: $e');
+    }
+  }
+  
+  @override
+  Future<CommentAddResponseModel> addComment({
+    required int type,
+    required int oid,
+    required String message,
+    int? root,
+    int? parent,
+    int plat = 1,
+  }) async {
+    try {
+      Logger.d('开始发送评论: type=$type, oid=$oid, message=$message, root=$root, parent=$parent');
+      
+      // 获取CSRF token
+      final cookie = _cookieManager.getCookie();
+      if (cookie == null) {
+        throw const AuthException('未登录，无法发送评论');
+      }
+      
+      // 从cookie中提取CSRF token
+      final csrfMatch = RegExp(r'bili_jct=([^;]+)').firstMatch(cookie);
+      final csrf = csrfMatch?.group(1);
+      if (csrf == null) {
+        throw const AuthException('无法获取CSRF token，请重新登录');
+      }
+      
+      // 构建请求参数
+      final formData = FormData.fromMap({
+        'type': type,
+        'oid': oid,
+        'message': message,
+        'plat': plat,
+        'csrf': csrf,
+        if (root != null) 'root': root,
+        if (parent != null) 'parent': parent,
+      });
+      
+      final response = await _apiClient.post(
+        AppConstants.commentAddUrl,
+        data: formData,
+        options: Options(
+          headers: _buildHeaders(),
+          contentType: 'application/x-www-form-urlencoded',
+        ),
+      );
+      
+      if (response.data == null) {
+        throw const ServerException('发送评论响应为空');
+      }
+      
+      final data = response.data as Map<String, dynamic>;
+      final code = data['code'] as int?;
+      
+      if (code != 0) {
+        final message = data['message'] as String? ?? '发送评论失败';
+        if (code == -101) {
+          throw const AuthException('账号未登录');
+        } else if (code == -102) {
+          throw const AuthException('账号被封停');
+        } else if (code == -111) {
+          throw const AuthException('CSRF校验失败');
+        } else if (code == -400) {
+          throw const ServerException('请求错误');
+        } else if (code == -404) {
+          throw const ServerException('无此项');
+        } else if (code == -509) {
+          throw const ServerException('请求过于频繁');
+        } else if (code == 12001) {
+          throw const ServerException('已经存在评论主题');
+        } else if (code == 12002) {
+          throw const ServerException('评论区已关闭');
+        } else if (code == 12003) {
+          throw const ServerException('禁止回复');
+        } else if (code == 12006) {
+          throw const ServerException('没有该评论');
+        } else if (code == 12009) {
+          throw const ServerException('评论主体的type不合法');
+        } else if (code == 12015) {
+          throw const ServerException('需要评论验证码');
+        } else if (code == 12016) {
+          throw const ServerException('评论内容包含敏感信息');
+        } else if (code == 12025) {
+          throw const ServerException('评论字数过多');
+        } else if (code == 12035) {
+          throw const ServerException('该账号被UP主列入评论黑名单');
+        } else if (code == 12051) {
+          throw const ServerException('重复评论，请勿刷屏');
+        } else if (code == 12052) {
+          throw const ServerException('评论区已关闭');
+        } else if (code == 12045) {
+          throw const ServerException('购买后即可发表评论');
+        }
+        throw ServerException(message);
+      }
+      
+      Logger.d('评论发送成功');
+      return CommentAddResponseModel.fromBilibiliApiResponse(data);
+    } on DioException catch (e) {
+      Logger.e('发送评论网络错误: ${e.message}');
+      throw NetworkException('发送评论失败: ${e.message}');
+    } catch (e) {
+      Logger.e('发送评论异常: $e');
+      if (e is AppException) rethrow;
+      throw ServerException('发送评论失败: $e');
     }
   }
 } 

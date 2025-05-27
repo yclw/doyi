@@ -251,4 +251,46 @@ class CommentReplyPageModel extends CommentReplyPageEntity {
       count: json['count'] as int? ?? 0,
     );
   }
+}
+
+/// 评论发送响应数据模型
+class CommentAddResponseModel extends CommentAddResponseEntity {
+  const CommentAddResponseModel({
+    required super.successAction,
+    required super.successToast,
+    required super.needCaptcha,
+    required super.url,
+    required super.rpid,
+    required super.rpidStr,
+    required super.dialog,
+    required super.dialogStr,
+    required super.root,
+    required super.rootStr,
+    required super.parent,
+    required super.parentStr,
+    super.reply,
+  });
+  
+  /// 从B站API响应创建评论发送响应模型
+  factory CommentAddResponseModel.fromBilibiliApiResponse(Map<String, dynamic> json) {
+    final data = json['data'] as Map<String, dynamic>? ?? {};
+    
+    return CommentAddResponseModel(
+      successAction: data['success_action'] as int? ?? 0,
+      successToast: data['success_toast'] as String? ?? '',
+      needCaptcha: data['need_captcha'] as bool? ?? false,
+      url: data['url'] as String? ?? '',
+      rpid: data['rpid'] as int? ?? 0,
+      rpidStr: data['rpid_str'] as String? ?? '',
+      dialog: data['dialog'] as int? ?? 0,
+      dialogStr: data['dialog_str'] as String? ?? '',
+      root: data['root'] as int? ?? 0,
+      rootStr: data['root_str'] as String? ?? '',
+      parent: data['parent'] as int? ?? 0,
+      parentStr: data['parent_str'] as String? ?? '',
+      reply: data['reply'] != null 
+          ? CommentModel.fromBilibiliApiResponse(data['reply'] as Map<String, dynamic>)
+          : null,
+    );
+  }
 } 

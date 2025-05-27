@@ -1,7 +1,7 @@
 /// 应用常量
 class AppConstants {
   // 应用信息
-  static const String appName = 'B站登录助手';
+  static const String appName = 'doyi';
   static const String appVersion = '1.0.0';
   
   // API端点
@@ -22,6 +22,7 @@ class AppConstants {
   // 评论API
   static const String commentListUrl = '$bilibiliBaseUrl/x/v2/reply';
   static const String commentReplyUrl = '$bilibiliBaseUrl/x/v2/reply/reply';
+  static const String commentAddUrl = '$bilibiliBaseUrl/x/v2/reply/add';
   
   // 本地存储键
   static const String cookieKey = 'bilibili_cookie';

@@ -185,6 +185,36 @@ class AuthRepositoryImpl implements AuthRepository {
     }
   }
   
+  @override
+  Future<Result<CommentAddResponseEntity>> addComment({
+    required int type,
+    required int oid,
+    required String message,
+    int? root,
+    int? parent,
+    int plat = 1,
+  }) async {
+    try {
+      final response = await _commentDatasource.addComment(
+        type: type,
+        oid: oid,
+        message: message,
+        root: root,
+        parent: parent,
+        plat: plat,
+      );
+      return Result.success(response);
+    } on NetworkException catch (e) {
+      return Result.failure(NetworkFailure(e.message));
+    } on AuthException catch (e) {
+      return Result.failure(AuthFailure(e.message));
+    } on ServerException catch (e) {
+      return Result.failure(ServerFailure(e.message));
+    } catch (e) {
+      return Result.failure(ServerFailure('发送评论失败: $e'));
+    }
+  }
+  
   /// 提取并保存Cookie
   Future<void> _extractAndSaveCookie(String url) async {
     try {

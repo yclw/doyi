@@ -220,4 +220,54 @@ class CommentReplyPageEntity extends Equatable {
   
   @override
   List<Object> get props => [pageNum, size, count];
+}
+
+/// 评论发送响应实体
+class CommentAddResponseEntity extends Equatable {
+  final int successAction;
+  final String successToast;
+  final bool needCaptcha;
+  final String url;
+  final int rpid;
+  final String rpidStr;
+  final int dialog;
+  final String dialogStr;
+  final int root;
+  final String rootStr;
+  final int parent;
+  final String parentStr;
+  final CommentEntity? reply;
+  
+  const CommentAddResponseEntity({
+    required this.successAction,
+    required this.successToast,
+    required this.needCaptcha,
+    required this.url,
+    required this.rpid,
+    required this.rpidStr,
+    required this.dialog,
+    required this.dialogStr,
+    required this.root,
+    required this.rootStr,
+    required this.parent,
+    required this.parentStr,
+    this.reply,
+  });
+  
+  @override
+  List<Object?> get props => [
+    successAction,
+    successToast,
+    needCaptcha,
+    url,
+    rpid,
+    rpidStr,
+    dialog,
+    dialogStr,
+    root,
+    rootStr,
+    parent,
+    parentStr,
+    reply,
+  ];
 } 

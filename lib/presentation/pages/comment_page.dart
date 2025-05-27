@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/comment_provider.dart';
+import '../providers/comment_add_provider.dart';
 import '../widgets/comment_item.dart';
+import '../widgets/comment_reply_input.dart';
 import '../widgets/loading_widget.dart';
 import '../widgets/error_widget.dart';
 import 'comment_reply_page.dart';
+import '../../domain/entities/comment_entity.dart';
 
 /// 评论页面
 class CommentPage extends StatefulWidget {
@@ -26,6 +29,8 @@ class CommentPage extends StatefulWidget {
 class _CommentPageState extends State<CommentPage> {
   final ScrollController _scrollController = ScrollController();
   int _currentSort = 0; // 0: 按时间, 1: 按点赞数, 2: 按回复数
+  CommentEntity? _replyToComment; // 当前要回复的评论
+  bool _showReplyInput = false; // 是否显示回复输入框
   
   @override
   void initState() {
@@ -71,6 +76,54 @@ class _CommentPageState extends State<CommentPage> {
         ),
       ),
     );
+  }
+  
+  /// 显示回复输入框
+  void _showReplyInputDialog(CommentEntity comment) {
+    setState(() {
+      _replyToComment = comment;
+      _showReplyInput = true;
+    });
+  }
+  
+  /// 隐藏回复输入框
+  void _hideReplyInput() {
+    setState(() {
+      _replyToComment = null;
+      _showReplyInput = false;
+    });
+  }
+  
+  /// 发送回复
+  Future<void> _sendReply(String message) async {
+    if (_replyToComment == null) return;
+    
+    final addProvider = context.read<CommentAddProvider>();
+    final success = await addProvider.addComment(
+      type: widget.type,
+      oid: widget.oid,
+      message: message,
+      root: _replyToComment!.root == 0 ? _replyToComment!.rpid : _replyToComment!.root,
+      parent: _replyToComment!.rpid,
+    );
+    
+    if (success) {
+      _hideReplyInput();
+      // 刷新评论列表
+      if (mounted) {
+        context.read<CommentProvider>().refreshComments();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('回复发送成功')),
+        );
+      }
+    } else {
+      // 显示错误信息
+      if (mounted && addProvider.errorMessage != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(addProvider.errorMessage!)),
+        );
+      }
+    }
   }
   
   @override
@@ -152,13 +205,34 @@ class _CommentPageState extends State<CommentPage> {
           ),
         ],
       ),
-      body: Consumer<CommentProvider>(
-        builder: (context, commentProvider, child) {
-          return RefreshIndicator(
-            onRefresh: () => commentProvider.refreshComments(),
-            child: _buildBody(commentProvider),
-          );
-        },
+      body: Stack(
+        children: [
+          Consumer<CommentProvider>(
+            builder: (context, commentProvider, child) {
+              return RefreshIndicator(
+                onRefresh: () => commentProvider.refreshComments(),
+                child: _buildBody(commentProvider),
+              );
+            },
+          ),
+          if (_showReplyInput)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Consumer<CommentAddProvider>(
+                builder: (context, addProvider, child) {
+                  return CommentReplyInput(
+                    replyToUser: _replyToComment?.member.uname,
+                    placeholder: '回复 @${_replyToComment?.member.uname}',
+                    isLoading: addProvider.isLoading,
+                    onSubmit: _sendReply,
+                    onCancel: _hideReplyInput,
+                  );
+                },
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -236,7 +310,12 @@ class _CommentPageState extends State<CommentPage> {
     
     return ListView.builder(
       controller: _scrollController,
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.only(
+        left: 16,
+        right: 16,
+        top: 16,
+        bottom: _showReplyInput ? 120 : 16, // 为回复输入框留出空间
+      ),
       itemCount: _calculateItemCount(hotComments, normalComments, commentProvider),
       itemBuilder: (context, index) {
         return _buildListItem(
@@ -290,6 +369,7 @@ class _CommentPageState extends State<CommentPage> {
         return CommentItem(
           comment: comment,
           onReplyTap: comment.count > 0 ? () => _navigateToReplyPage(comment) : null,
+          onReplyToComment: _showReplyInputDialog,
         );
       }
       currentIndex -= hotComments.length;
@@ -310,6 +390,7 @@ class _CommentPageState extends State<CommentPage> {
         return CommentItem(
           comment: comment,
           onReplyTap: comment.count > 0 ? () => _navigateToReplyPage(comment) : null,
+          onReplyToComment: _showReplyInputDialog,
         );
       }
       currentIndex -= normalComments.length;

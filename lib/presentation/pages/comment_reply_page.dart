@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/comment_reply_provider.dart';
+import '../providers/comment_add_provider.dart';
 import '../widgets/comment_item.dart';
+import '../widgets/comment_reply_input.dart';
 import '../widgets/loading_widget.dart';
 import '../widgets/error_widget.dart';
+import '../../domain/entities/comment_entity.dart';
 
 /// 评论回复页面（楼中楼）
 class CommentReplyPage extends StatefulWidget {
@@ -26,6 +29,8 @@ class CommentReplyPage extends StatefulWidget {
 
 class _CommentReplyPageState extends State<CommentReplyPage> {
   late ScrollController _scrollController;
+  CommentEntity? _replyToComment; // 当前要回复的评论
+  bool _showReplyInput = false; // 是否显示回复输入框
   
   @override
   void initState() {
@@ -56,6 +61,54 @@ class _CommentReplyPageState extends State<CommentReplyPage> {
     }
   }
   
+  /// 显示回复输入框
+  void _showReplyInputDialog(CommentEntity comment) {
+    setState(() {
+      _replyToComment = comment;
+      _showReplyInput = true;
+    });
+  }
+  
+  /// 隐藏回复输入框
+  void _hideReplyInput() {
+    setState(() {
+      _replyToComment = null;
+      _showReplyInput = false;
+    });
+  }
+  
+  /// 发送回复
+  Future<void> _sendReply(String message) async {
+    if (_replyToComment == null) return;
+    
+    final addProvider = context.read<CommentAddProvider>();
+    final success = await addProvider.addComment(
+      type: widget.type,
+      oid: widget.oid,
+      message: message,
+      root: widget.root,
+      parent: _replyToComment!.rpid,
+    );
+    
+    if (success) {
+      _hideReplyInput();
+      // 刷新回复列表
+      if (mounted) {
+        context.read<CommentReplyProvider>().refresh();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('回复发送成功')),
+        );
+      }
+    } else {
+      // 显示错误信息
+      if (mounted && addProvider.errorMessage != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(addProvider.errorMessage!)),
+        );
+      }
+    }
+  }
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -63,13 +116,34 @@ class _CommentReplyPageState extends State<CommentReplyPage> {
         title: Text(widget.title),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
-      body: Consumer<CommentReplyProvider>(
-        builder: (context, provider, child) {
-          return RefreshIndicator(
-            onRefresh: provider.refresh,
-            child: _buildBody(provider),
-          );
-        },
+      body: Stack(
+        children: [
+          Consumer<CommentReplyProvider>(
+            builder: (context, provider, child) {
+              return RefreshIndicator(
+                onRefresh: provider.refresh,
+                child: _buildBody(provider),
+              );
+            },
+          ),
+          if (_showReplyInput)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: Consumer<CommentAddProvider>(
+                builder: (context, addProvider, child) {
+                  return CommentReplyInput(
+                    replyToUser: _replyToComment?.member.uname,
+                    placeholder: '回复 @${_replyToComment?.member.uname}',
+                    isLoading: addProvider.isLoading,
+                    onSubmit: _sendReply,
+                    onCancel: _hideReplyInput,
+                  );
+                },
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -129,9 +203,10 @@ class _CommentReplyPageState extends State<CommentReplyPage> {
                       ),
                     ),
                   ),
-                                     CommentItem(
-                     comment: rootComment,
-                   ),
+                  CommentItem(
+                    comment: rootComment,
+                    onReplyToComment: _showReplyInputDialog,
+                  ),
                   const Divider(height: 1),
                 ],
               ),
@@ -187,9 +262,10 @@ class _CommentReplyPageState extends State<CommentReplyPage> {
             delegate: SliverChildBuilderDelegate(
               (context, index) {
                 if (index < replies.length) {
-                                     return CommentItem(
-                     comment: replies[index],
-                   );
+                  return CommentItem(
+                    comment: replies[index],
+                    onReplyToComment: _showReplyInputDialog,
+                  );
                 } else if (provider.state == CommentReplyState.loadingMore) {
                   return const Padding(
                     padding: EdgeInsets.all(16),
@@ -218,6 +294,13 @@ class _CommentReplyPageState extends State<CommentReplyPage> {
                   (!provider.hasMore && replies.isNotEmpty ? 1 : 0),
             ),
           ),
+        
+        // 底部空间，为回复输入框留出位置
+        SliverPadding(
+          padding: EdgeInsets.only(
+            bottom: _showReplyInput ? 120 : 16,
+          ),
+        ),
       ],
     );
   }

@@ -40,7 +40,7 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('B站登录助手'),
+        title: const Text('doyi'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
           Consumer<AuthProvider>(

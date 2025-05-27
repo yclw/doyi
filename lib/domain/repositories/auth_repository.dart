@@ -41,4 +41,14 @@ abstract class AuthRepository {
     int ps = 20,
     int pn = 1,
   });
+  
+  /// 发送评论
+  Future<Result<CommentAddResponseEntity>> addComment({
+    required int type,
+    required int oid,
+    required String message,
+    int? root,
+    int? parent,
+    int plat = 1,
+  });
 } 

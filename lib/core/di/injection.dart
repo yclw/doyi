@@ -15,9 +15,11 @@ import '../../domain/usecases/get_user_info_usecase.dart';
 import '../../domain/usecases/logout_usecase.dart';
 import '../../domain/usecases/get_comment_list_usecase.dart';
 import '../../domain/usecases/get_comment_replies_usecase.dart';
+import '../../domain/usecases/add_comment_usecase.dart';
 import '../../presentation/providers/auth_provider.dart';
 import '../../presentation/providers/comment_provider.dart';
 import '../../presentation/providers/comment_reply_provider.dart';
+import '../../presentation/providers/comment_add_provider.dart';
 
 final GetIt getIt = GetIt.instance;
 
@@ -77,6 +79,9 @@ Future<void> initDependencies() async {
   getIt.registerLazySingleton<GetCommentRepliesUsecase>(
     () => GetCommentRepliesUsecase(getIt<AuthRepository>()),
   );
+  getIt.registerLazySingleton<AddCommentUsecase>(
+    () => AddCommentUsecase(getIt<AuthRepository>()),
+  );
   
   // 提供者
   getIt.registerFactory<AuthProvider>(
@@ -92,5 +97,8 @@ Future<void> initDependencies() async {
   );
   getIt.registerFactory<CommentReplyProvider>(
     () => CommentReplyProvider(getIt<GetCommentRepliesUsecase>()),
+  );
+  getIt.registerFactory<CommentAddProvider>(
+    () => CommentAddProvider(getIt<AddCommentUsecase>()),
   );
 } 
