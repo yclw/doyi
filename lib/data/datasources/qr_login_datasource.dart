@@ -31,7 +31,7 @@ class QrLoginDatasourceImpl implements QrLoginDatasource {
         ),
       );
       
-      Logger.d('二维码申请响应: ${response.statusCode}');
+      Logger.network('二维码申请响应: ${response.statusCode}');
       
       if (response.data == null) {
         Logger.e('二维码申请响应数据为空');
@@ -39,7 +39,7 @@ class QrLoginDatasourceImpl implements QrLoginDatasource {
       }
       
       final data = response.data as Map<String, dynamic>;
-      Logger.d('二维码申请响应数据: $data');
+      Logger.network('二维码申请响应数据: $data');
       
       final code = data['code'] as int?;
       
@@ -82,7 +82,7 @@ class QrLoginDatasourceImpl implements QrLoginDatasource {
         ),
       );
       
-      Logger.d('轮询响应: ${response.statusCode}');
+      Logger.network('轮询响应: ${response.statusCode}');
       
       if (response.data == null) {
         Logger.e('轮询响应数据为空');
@@ -90,7 +90,7 @@ class QrLoginDatasourceImpl implements QrLoginDatasource {
       }
       
       final data = response.data as Map<String, dynamic>;
-      Logger.d('轮询响应数据: $data');
+      Logger.network('轮询响应数据: $data');
       
       final rootCode = data['code'] as int?;
       

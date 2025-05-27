@@ -342,7 +342,7 @@ class _HomePageState extends State<HomePage> {
         AppConstants.videoInfoUrl,
         queryParameters: {'bvid': bvId},
       );
-      Logger.d('视频信息API响应: ${response.statusCode}');
+              Logger.network('视频信息API响应: ${response.statusCode}');
       if (response.data != null && response.data['code'] == 0) {
         final aid = response.data['data']['aid'] as int?;
         Logger.d('BV号 $bvId 转换为 AV号: $aid');

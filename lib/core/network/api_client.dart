@@ -47,15 +47,15 @@ class ApiClient {
     // 请求拦截器
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) {
-        Logger.d('请求: ${options.method} ${options.uri}');
+        Logger.network('请求: ${options.method} ${options.uri}');
         if (options.data != null) {
-          Logger.d('请求数据: ${options.data}');
+          Logger.network('请求数据: ${options.data}');
         }
         handler.next(options);
       },
       onResponse: (response, handler) {
-        Logger.d('响应: ${response.statusCode} ${response.requestOptions.uri}');
-        Logger.d('响应数据: ${response.data}');
+        Logger.network('响应: ${response.statusCode} ${response.requestOptions.uri}');
+        Logger.network('响应数据: ${response.data}');
         handler.next(response);
       },
       onError: (error, handler) async {

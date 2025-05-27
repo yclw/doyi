@@ -58,6 +58,7 @@ sealed class Result<T> {
 
 /// 成功结果
 final class Success<T> extends Result<T> {
+  @override
   final T data;
   
   const Success(this.data);
@@ -76,6 +77,7 @@ final class Success<T> extends Result<T> {
 
 /// 失败结果
 final class Failed<T> extends Result<T> {
+  @override
   final Failure failure;
   
   const Failed(this.failure);
