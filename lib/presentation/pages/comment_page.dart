@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/comment_provider.dart';
 import '../providers/comment_add_provider.dart';
+import '../providers/comment_search_provider.dart';
 import '../widgets/comment_item.dart';
 import '../widgets/comment_reply_input.dart';
+import '../widgets/comment_search_widget.dart';
 import '../widgets/loading_widget.dart';
 import '../widgets/error_widget.dart';
 import 'comment_reply_page.dart';
@@ -31,6 +33,7 @@ class _CommentPageState extends State<CommentPage> {
   int _currentSort = 0; // 0: 按时间, 1: 按点赞数, 2: 按回复数
   CommentEntity? _replyToComment; // 当前要回复的评论
   bool _showReplyInput = false; // 是否显示回复输入框
+  final Map<int, GlobalKey> _commentKeys = {}; // 评论项的GlobalKey映射
   
   @override
   void initState() {
@@ -126,6 +129,69 @@ class _CommentPageState extends State<CommentPage> {
     }
   }
   
+  /// 显示搜索对话框
+  void _showSearchDialog() {
+    final commentProvider = context.read<CommentProvider>();
+    final searchProvider = context.read<CommentSearchProvider>();
+    
+    // 设置搜索数据
+    searchProvider.setComments(commentProvider.allComments);
+    
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => CommentSearchWidget(
+        onClose: () => Navigator.of(context).pop(),
+        onCommentTap: _scrollToComment,
+      ),
+    );
+  }
+  
+  /// 获取评论的GlobalKey
+  GlobalKey _getCommentKey(int rpid) {
+    if (!_commentKeys.containsKey(rpid)) {
+      _commentKeys[rpid] = GlobalKey();
+    }
+    return _commentKeys[rpid]!;
+  }
+  
+  /// 滚动到指定评论
+  void _scrollToComment(CommentEntity comment) {
+    // 关闭搜索对话框
+    Navigator.of(context).pop();
+    
+    // 找到根评论ID（如果是回复，需要找到其根评论）
+    final rootRpid = comment.root == 0 ? comment.rpid : comment.root;
+    final key = _commentKeys[rootRpid];
+    
+         if (key != null && key.currentContext != null) {
+       // 滚动到评论位置
+       Scrollable.ensureVisible(
+         key.currentContext!,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+        alignment: 0.1, // 滚动到屏幕顶部10%的位置
+      );
+      
+      // 显示提示信息
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('已定位到 @${comment.member.uname} 的评论'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } else {
+      // 如果找不到评论，可能是因为评论还没有加载
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('该评论可能还未加载，请尝试加载更多评论'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -133,6 +199,10 @@ class _CommentPageState extends State<CommentPage> {
         title: Text(widget.title),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.search),
+            onPressed: _showSearchDialog,
+          ),
           PopupMenuButton<int>(
             icon: const Icon(Icons.sort),
             onSelected: (sort) {
@@ -366,7 +436,9 @@ class _CommentPageState extends State<CommentPage> {
       
       if (currentIndex < hotComments.length) {
         final comment = hotComments[currentIndex];
+        final key = _getCommentKey(comment.rpid);
         return CommentItem(
+          key: key,
           comment: comment,
           onReplyTap: comment.count > 0 ? () => _navigateToReplyPage(comment) : null,
           onReplyToComment: _showReplyInputDialog,
@@ -387,7 +459,9 @@ class _CommentPageState extends State<CommentPage> {
       
       if (currentIndex < normalComments.length) {
         final comment = normalComments[currentIndex];
+        final key = _getCommentKey(comment.rpid);
         return CommentItem(
+          key: key,
           comment: comment,
           onReplyTap: comment.count > 0 ? () => _navigateToReplyPage(comment) : null,
           onReplyToComment: _showReplyInputDialog,

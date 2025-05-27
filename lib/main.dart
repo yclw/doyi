@@ -5,6 +5,7 @@ import 'presentation/providers/auth_provider.dart';
 import 'presentation/providers/comment_provider.dart';
 import 'presentation/providers/comment_reply_provider.dart';
 import 'presentation/providers/comment_add_provider.dart';
+import 'presentation/providers/comment_search_provider.dart';
 import 'presentation/pages/home_page.dart';
 
 void main() async {
@@ -34,6 +35,9 @@ class MyApp extends StatelessWidget {
         ),
         ChangeNotifierProvider(
           create: (context) => getIt<CommentAddProvider>(),
+        ),
+        ChangeNotifierProvider(
+          create: (context) => CommentSearchProvider(),
         ),
       ],
       child: MaterialApp(

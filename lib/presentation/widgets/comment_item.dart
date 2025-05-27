@@ -6,12 +6,14 @@ class CommentItem extends StatelessWidget {
   final CommentEntity comment;
   final VoidCallback? onReplyTap;
   final Function(CommentEntity comment)? onReplyToComment; // 回复评论回调
+  final String? highlightKeyword; // 高亮关键词
   
   const CommentItem({
     super.key,
     required this.comment,
     this.onReplyTap,
     this.onReplyToComment,
+    this.highlightKeyword,
   });
   
   @override
@@ -61,11 +63,12 @@ class CommentItem extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Text(
+                  _buildHighlightedText(
                     comment.member.uname.isNotEmpty 
                         ? comment.member.uname 
                         : '匿名用户',
-                    style: TextStyle(
+                    highlightKeyword,
+                    TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                       color: comment.member.vip.nicknameColor.isNotEmpty
@@ -132,9 +135,10 @@ class CommentItem extends StatelessWidget {
   }
   
   Widget _buildContent() {
-    return Text(
+    return _buildHighlightedText(
       comment.content.message,
-      style: const TextStyle(
+      highlightKeyword,
+      const TextStyle(
         fontSize: 14,
         height: 1.4,
       ),
@@ -309,5 +313,54 @@ class CommentItem extends StatelessWidget {
     } catch (e) {
       return Colors.black;
     }
+  }
+  
+  /// 构建高亮文本
+  Widget _buildHighlightedText(String text, String? keyword, TextStyle style) {
+    if (keyword == null || keyword.isEmpty) {
+      return Text(text, style: style);
+    }
+    
+    final lowerText = text.toLowerCase();
+    final lowerKeyword = keyword.toLowerCase();
+    
+    if (!lowerText.contains(lowerKeyword)) {
+      return Text(text, style: style);
+    }
+    
+    final spans = <TextSpan>[];
+    int start = 0;
+    
+    while (start < text.length) {
+      final index = lowerText.indexOf(lowerKeyword, start);
+      if (index == -1) {
+        // 没有更多匹配，添加剩余文本
+        spans.add(TextSpan(text: text.substring(start)));
+        break;
+      }
+      
+      // 添加匹配前的文本
+      if (index > start) {
+        spans.add(TextSpan(text: text.substring(start, index)));
+      }
+      
+      // 添加高亮的匹配文本
+      spans.add(TextSpan(
+        text: text.substring(index, index + keyword.length),
+        style: style.copyWith(
+                     backgroundColor: Colors.yellow.withValues(alpha: 0.3),
+          fontWeight: FontWeight.bold,
+        ),
+      ));
+      
+      start = index + keyword.length;
+    }
+    
+    return RichText(
+      text: TextSpan(
+        style: style,
+        children: spans,
+      ),
+    );
   }
 } 
